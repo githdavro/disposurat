@@ -56,18 +56,42 @@ class Surat extends Model
     /**
      * Generate nomor agenda otomatis
      */
+    // Di app\Models\Surat.php
     public static function generateNomorAgenda()
     {
-        $tahun = date('Y');
-        $bulan = date('m');
+        $year = date('Y');
+        $month = date('m');
         
-        // Hitung jumlah surat di bulan ini
-        $count = Surat::whereYear('created_at', $tahun)
-                     ->whereMonth('created_at', $bulan)
-                     ->count();
+        $lastSurat = static::whereYear('created_at', $year)
+                        ->whereMonth('created_at', $month)
+                        ->orderBy('created_at', 'desc')
+                        ->first();
         
-        $nextNumber = $count + 1;
+        $sequence = 1;
+        if ($lastSurat && $lastSurat->nomor_agenda) {
+            $lastSequence = intval(substr($lastSurat->nomor_agenda, -4));
+            $sequence = $lastSequence + 1;
+        }
         
-        return "AGD/{$tahun}/{$bulan}/" . str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
+        return 'AGD/' . $year . '/' . $month . '/' . str_pad($sequence, 4, '0', STR_PAD_LEFT);
+    }
+
+        /**
+     * Cek apakah user memiliki akses untuk melihat surat
+     */
+    /**
+ * Cek apakah user memiliki akses untuk melihat surat
+ */
+    public function userCanAccess($userId, $unitId)
+    {
+        // User bisa mengakses jika:
+        // 1. User adalah pengirim surat
+        // 2. User adalah bagian dari unit tujuan
+        // 3. User adalah bagian dari unit asal
+        // 4. User adalah tujuan disposisi
+        return $this->pengirim_id == $userId ||
+            $this->tujuan_unit_id == $unitId ||
+            $this->asal_unit_id == $unitId ||
+            $this->disposisis->where('tujuan_unit_id', $unitId)->count() > 0; // disposisis (plural)
     }
 }

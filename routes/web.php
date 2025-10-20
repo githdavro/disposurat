@@ -63,6 +63,9 @@ Route::middleware('auth')->group(function () {
         Route::get('/sent', [SuratController::class, 'sent'])->name('unit.sent');
         Route::get('/inbox', [SuratController::class, 'inbox'])->name('unit.inbox');
         Route::get('/surat/{id}', [SuratController::class, 'show'])->name('unit.detail-surat');
+        Route::get('/surat/{id}/edit', [SuratController::class, 'edit'])->name('unit.edit-surat');
+        Route::put('/surat/{id}', [SuratController::class, 'update'])->name('surat.update');
+        Route::delete('/surat/{id}', [SuratController::class, 'destroy'])->name('surat.destroy');
     });
 
     /*
@@ -71,9 +74,12 @@ Route::middleware('auth')->group(function () {
     |--------------------------------------------------------------------------
     */
     Route::prefix('pengadaan')->group(function () {
-        Route::get('/inbox', [PengadaanController::class, 'inbox'])->name('pengadaan.inbox');
-        Route::get('/surat/{id}', [PengadaanController::class, 'detailSurat'])->name('pengadaan.detail-surat');
+        Route::get('/inbox', action: [PengadaanController::class, 'inbox'])->name('pengadaan.inbox');
+       Route::get('/surat/{id}', [PengadaanController::class, 'detailSurat'])->name('pengadaan.detail-surat');
+        Route::get('/surat/{id}/edit', [PengadaanController::class, 'edit'])->name('pengadaan.edit-surat');
+        Route::put('/surat/{id}', [PengadaanController::class, 'update'])->name('pengadaan.surat.update');
         Route::post('/distribusi/{id}', [PengadaanController::class, 'distribusi'])->name('pengadaan.distribusi');
+        Route::get('/arsip', [PengadaanController::class, 'arsip'])->name('pengadaan.arsip');
     });
 
     /*
@@ -86,17 +92,34 @@ Route::middleware('auth')->group(function () {
         Route::get('/disposisi/{id}', [DirekturController::class, 'disposisiForm'])->name('direktur.disposisi-form');
         Route::post('/disposisi/{id}', [DirekturController::class, 'prosesDisposisi'])->name('direktur.proses-disposisi');
         Route::get('/arsip', [DirekturController::class, 'arsip'])->name('direktur.arsip');
+        Route::get('/surat/{id}', [DirekturController::class, 'show'])->name('direktur.detail-surat');
     });
+
+            /*
+        |--------------------------------------------------------------------------
+        | Disposisi Routes
+        |--------------------------------------------------------------------------
+        */
+        Route::prefix('disposisi')->group(function () {
+            // Terima disposisi
+            Route::post('/{id}/terima', [DisposisiController::class, 'terimaDisposisi'])
+                ->name('disposisi.terima');
+
+            // Tandai disposisi sebagai selesai
+            Route::post('/{id}/selesai', [DisposisiController::class, 'selesaikanDisposisi'])
+                ->name('disposisi.selesai');
+
+            // Detail disposisi
+            Route::get('/{id}', [DisposisiController::class, 'show'])
+                ->name('disposisi.detail');
+        });
+
 
     /*
     |--------------------------------------------------------------------------
-    | Disposisi Routes
+    | Admin Routes
     |--------------------------------------------------------------------------
     */
-    Route::post('/disposisi/{id}/terima', [DisposisiController::class, 'terimaDisposisi'])->name('disposisi.terima');
-    Route::post('/disposisi/{id}/selesai', [DisposisiController::class, 'selesaikanDisposisi'])->name('disposisi.selesai');
-
-    // Admin routes
     Route::prefix('admin')->group(function () {
         Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('admin.dashboard');
         Route::get('/users', [AdminController::class, 'userManagement'])->name('admin.users');
@@ -110,8 +133,13 @@ Route::middleware('auth')->group(function () {
         
         // Unit management
         Route::post('/units', [AdminController::class, 'createUnit'])->name('admin.units.create');
+        Route::put('/units/{unit}', [AdminController::class, 'updateUnit'])->name('admin.units.update');
         Route::delete('/units/{unit}', [AdminController::class, 'destroy'])->name('admin.units.destroy');
-    }); // close admin prefix group
+        
+        // Surat management
+        Route::get('/surat', [AdminController::class, 'suratManagement'])->name('admin.surat');
+        Route::get('/surat/{id}', [AdminController::class, 'detailSurat'])->name('admin.detail-surat');
+    });
 
 }); // close auth middleware group
 

@@ -49,7 +49,7 @@
                         </span>
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <a href="#" class="text-blue-600 hover:text-blue-900">Detail</a>
+                        <a href="{{ route('unit.detail-surat', $item->id) }}" class="text-blue-600 hover:text-blue-900 mr-3">Detail</a>
                     </td>
                 </tr>
                 @empty

@@ -32,12 +32,13 @@
                             @elseif($surat->status == 'ditolak') bg-red-100 text-red-800
                             @elseif($surat->status == 'dikirim') bg-blue-100 text-blue-800
                             @elseif($surat->status == 'diterima_pengadaan') bg-yellow-100 text-yellow-800
+                            @elseif($surat->status == 'diarsipkan') bg-gray-100 text-gray-800
                             @else bg-gray-100 text-gray-800 @endif">
                             {{ ucfirst(str_replace('_', ' ', $surat->status)) }}
                         </span>
                     </dd>
                 </div>
-                @if($surat->nomor_agenda)
+                @if($surat->nomor_agenda && (Auth::user()->hasRole('pengadaan') || Auth::user()->hasRole('admin')))
                 <div>
                     <dt class="text-sm font-medium text-gray-500">Nomor Agenda</dt>
                     <dd class="text-sm text-gray-900 font-semibold">{{ $surat->nomor_agenda }}</dd>
@@ -91,6 +92,22 @@
                 </div>
             </div>
 
+            @if($surat->nilai >= 1000000)
+            <div class="bg-blue-50 p-4 rounded-md mb-4">
+                <p class="text-sm text-blue-700">
+                    <strong>Perhatian:</strong> Surat ini memiliki nilai Rp {{ number_format($surat->nilai, 0, ',', '.') }} 
+                    sehingga memerlukan persetujuan Direktur.
+                </p>
+            </div>
+            @else
+            <div class="bg-green-50 p-4 rounded-md mb-4">
+                <p class="text-sm text-green-700">
+                    <strong>Informasi:</strong> Surat ini memiliki nilai di bawah Rp 1.000.000 
+                    sehingga akan langsung diarsipkan.
+                </p>
+            </div>
+            @endif
+
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                 <div>
                     <label for="tujuan_unit_id" class="block text-sm font-medium text-gray-700">Tujuan Distribusi *</label>
@@ -99,7 +116,8 @@
                         <option value="">Pilih Tujuan</option>
                         @foreach($units as $unit)
                             @if($unit->kode_unit != 'PENGADAAN')
-                                <option value="{{ $unit->id }}">
+                                <option value="{{ $unit->id }}" 
+                                    @if($surat->nilai >= 1000000 && $unit->kode_unit == 'DIREKTUR') selected @endif>
                                     {{ $unit->nama_unit }}
                                     @if($surat->nilai >= 1000000 && $unit->kode_unit == 'DIREKTUR')
                                         (Wajib untuk nilai ≥ Rp 1.000.000)
@@ -129,6 +147,25 @@
                 </button>
             </div>
         </form>
+    </div>
+    @endif
+
+    <!-- Catatan Distribusi hanya untuk role tertentu -->
+    @if($surat->status != 'dikirim' && (Auth::user()->hasRole('pengadaan') || Auth::user()->hasRole('admin')))
+    <div class="mt-8 border-t pt-6">
+        <h3 class="text-lg font-semibold text-gray-800 mb-4">Informasi Proses</h3>
+        <div class="bg-gray-50 p-4 rounded-lg">
+            @if($surat->nomor_agenda)
+            <p class="text-sm text-gray-700 mb-2">
+                <strong>Nomor Agenda:</strong> {{ $surat->nomor_agenda }}
+            </p>
+            @endif
+            @if($surat->arsip)
+            <p class="text-sm text-gray-700">
+                <strong>Nomor Arsip:</strong> {{ $surat->arsip->nomor_arsip }}
+            </p>
+            @endif
+        </div>
     </div>
     @endif
 
@@ -173,6 +210,7 @@
     @endif
 </div>
 
+@if(Auth::user()->hasRole('pengadaan') && $surat->status == 'dikirim')
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         const suratNilai = {{ $surat->nilai ?? 0 }};
@@ -184,10 +222,17 @@
             for (let i = 0; i < options.length; i++) {
                 if (options[i].text.includes('DIREKTUR')) {
                     tujuanSelect.value = options[i].value;
+                    // Non-aktifkan pilihan lain
+                    for (let j = 0; j < options.length; j++) {
+                        if (options[j].value !== options[i].value) {
+                            options[j].disabled = true;
+                        }
+                    }
                     break;
                 }
             }
         }
     });
 </script>
+@endif
 @endsection

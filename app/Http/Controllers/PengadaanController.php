@@ -12,27 +12,27 @@ use Illuminate\Support\Facades\Auth;
 class PengadaanController extends Controller
 {
     public function inbox()
-    {
-        $surat = Surat::where('tujuan_unit_id', Auth::user()->unit_id)
-                     ->orWhereHas('disposisis', function($query) {
-                         $query->where('tujuan_unit_id', Auth::user()->unit_id);
-                     })
-                     ->with(['pengirim', 'tujuanUnit', 'asalUnit'])
-                     ->orderBy('created_at', 'desc')
-                     ->get();
-
-        return view('pengadaan.inbox', compact('surat'));
-    }
-
-    public function detailSurat($id)
 {
-    $surat = Surat::with(['pengirim', 'tujuanUnit', 'asalUnit', 'disposisis.dariUnit', 'disposisis.tujuanUnit'])
-                 ->findOrFail($id);
-    
-    $units = Unit::whereNotIn('kode_unit', ['PENGADAAN'])->get();
+    $surat = Surat::where('tujuan_unit_id', Auth::user()->unit_id)
+                 ->orWhereHas('disposisis', function($query) { // disposisis (plural)
+                     $query->where('tujuan_unit_id', Auth::user()->unit_id);
+                 })
+                 ->with(['pengirim', 'tujuanUnit', 'asalUnit'])
+                 ->orderBy('created_at', 'desc')
+                 ->get();
 
-    return view('pengadaan.detail_surat', compact('surat', 'units'));
+    return view('pengadaan.inbox', compact('surat'));
 }
+
+        public function detailSurat($id)
+        {
+            $surat = Surat::with(['pengirim', 'tujuanUnit', 'asalUnit', 'disposisis.dariUnit', 'disposisis.tujuanUnit']) // disposisis (plural)
+                        ->findOrFail($id);
+            
+            $units = Unit::whereNotIn('kode_unit', ['PENGADAAN'])->get();
+
+            return view('pengadaan.detail_surat', compact('surat', 'units'));
+        }
 
     public function distribusi(Request $request, $id)
     {

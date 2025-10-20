@@ -82,19 +82,42 @@ class SuratController extends Controller
         return view('unit.sent', compact('surat'));
     }
 
-    public function inbox()
-    {
-        $surat = Surat::where('tujuan_unit_id', Auth::user()->unit_id)
-                     ->orWhereHas('disposisis', function($query) {
-                         $query->where('tujuan_unit_id', Auth::user()->unit_id);
-                     })
-                     ->with(['pengirim', 'tujuanUnit', 'asalUnit'])
-                     ->orderBy('created_at', 'desc')
-                     ->get();
+        public function inbox()
+        {
+            $unitId = Auth::user()->unit_id;
+            $userId = Auth::id();
+            
+            \Log::info('Inbox Unit Access:', [
+                'user_id' => $userId,
+                'unit_id' => $unitId,
+                'user_role' => Auth::user()->role
+            ]);
 
-        return view('unit.inbox', compact('surat'));
-    }
+            $surat = Surat::where(function($query) use ($unitId) {
+                    $query->where('tujuan_unit_id', $unitId)
+                        ->orWhereHas('disposisis', function($q) use ($unitId) { // Pastikan disposisis (plural)
+                            $q->where('tujuan_unit_id', $unitId);
+                        });
+                })
+                ->with(['pengirim', 'tujuanUnit', 'asalUnit', 'disposisis']) // disposisis (plural)
+                ->orderBy('created_at', 'desc')
+                ->get();
 
+            // Log detailed information
+            foreach ($surat as $s) {
+                \Log::info('Surat Info:', [
+                    'id' => $s->id,
+                    'perihal' => $s->perihal,
+                    'tujuan_unit_id' => $s->tujuan_unit_id,
+                    'asal_unit_id' => $s->asal_unit_id,
+                    'status' => $s->status,
+                    'disposisi_count' => $s->disposisis->count(),
+                    'disposisi_units' => $s->disposisis->pluck('tujuan_unit_id')
+                ]);
+            }
+
+            return view('unit.inbox', compact('surat'));
+        }
     private function buatNotifikasi($unitId, $judul, $pesan, $link)
     {
         $users = \App\Models\User::where('unit_id', $unitId)->get();
@@ -107,5 +130,24 @@ class SuratController extends Controller
                 'link' => $link,
             ]);
         }
+    }
+
+    public function show($id)
+    {
+        $surat = Surat::with([
+            'pengirim', 
+            'tujuanUnit', 
+            'asalUnit', 
+            'disposisis.dariUnit', // Perbaiki: disposisis (plural)
+            'disposisis.tujuanUnit', // Perbaiki: disposisis (plural)
+            'arsip'
+        ])->findOrFail($id);
+
+        // Authorization check menggunakan method dari model
+        if (!$surat->userCanAccess(Auth::id(), Auth::user()->unit_id)) {
+            abort(403, 'Unauthorized access.');
+        }
+
+        return view('unit.detail_surat', compact('surat'));
     }
 }
